@@ -12,19 +12,46 @@
 
 #define __vo volatile
 
+/******************************************************************************
+ * 						Processor specific details
+ ******************************************************************************/
+#define DRV_NVIC_ISER0							((__vo uint32_t*)0xE000E100)
+#define DRV_NVIC_ISER1							((__vo uint32_t*)0xE000E104)
+#define DRV_NVIC_ISER2							((__vo uint32_t*)0xE000E108)
+#define DRV_NVIC_ISER3							((__vo uint32_t*)0xE000E10C)
+#define DRV_NVIC_ISER4							((__vo uint32_t*)0xE000E110)
+#define DRV_NVIC_ISER5							((__vo uint32_t*)0xE000E114)
+#define DRV_NVIC_ISER6							((__vo uint32_t*)0xE000E118)
+#define DRV_NVIC_ISER7							((__vo uint32_t*)0xE000E11C)
+
+#define DRV_NVIC_ICER0							((__vo uint32_t*)0XE000E180)
+#define DRV_NVIC_ICER1							((__vo uint32_t*)0xE000E184)
+#define DRV_NVIC_ICER2							((__vo uint32_t*)0xE000E188)
+#define DRV_NVIC_ICER3							((__vo uint32_t*)0xE000E18C)
+#define DRV_NVIC_ICER4							((__vo uint32_t*)0xE000E190)
+#define DRV_NVIC_ICER5							((__vo uint32_t*)0xE000E194)
+#define DRV_NVIC_ICER6							((__vo uint32_t*)0xE000E198)
+#define DRV_NVIC_ICER7							((__vo uint32_t*)0xE000E19C)
+
+#define DRV_NVIC_IPR_BASE_ADDR					((__vo uint32_t*)0xE000E400)
+
+#define NO_PR_BITS_IMPLEMENTED							4
+
+
+
 //Defining base addresses of Flash and SRAM
 #define DRV_FLASH_BASEADDR					0x08000000U		//defining the base address of FLASH/Main memory
 #define DRV_SRAM1_BASEADDR					0x20000000U		//defining the base address of SRAM1
 #define DRV_ROM_BASEADDR					0x1FFF0000U		//defining the base address of ROM/System memory
-#define DRV_SRAM 						DRV_SRAM1_BASEADDR	//there is only one SRAM on this controller
+#define DRV_SRAM 							DRV_SRAM1_BASEADDR	//there is only one SRAM on this controller
 
 
 //Defining AHBx and APBx bus peripherals
 #define DRV_PERIPH_BASEADDR					0x40000000U		//defining the base address of peripherals
-#define DRV_APB1PERIPH_BASEADDR					DRV_PERIPH_BASEADDR	//APB1 is first
-#define DRV_APB2PERIPH_BASEADDR					0x40010000U		//defining the base address for APB2
-#define DRV_AHB1PERIPH_BASEADDR					0x40020000U		//defining the base address for AHB1
-#define DRV_AHB2PERIPH_BASEADDR					0x50000000U		//defining the base address for AHB2
+#define DRV_APB1PERIPH_BASEADDR				DRV_PERIPH_BASEADDR	//APB1 is first
+#define DRV_APB2PERIPH_BASEADDR				0x40010000U		//defining the base address for APB2
+#define DRV_AHB1PERIPH_BASEADDR				0x40020000U		//defining the base address for AHB1
+#define DRV_AHB2PERIPH_BASEADDR				0x50000000U		//defining the base address for AHB2
 
 
 //Defining base addresses of peripherals connected to AHB1
@@ -52,7 +79,7 @@
 #define DRV_SPI4_BASEADDR					(DRV_APB2PERIPH_BASEADDR + 0x3400)
 #define DRV_USART1_BASEADDR					(DRV_APB2PERIPH_BASEADDR + 0x1000)
 #define DRV_USART6_BASEADDR					(DRV_APB2PERIPH_BASEADDR + 0x1400)
-#define DRV_SYSCFG_BASEADDR					(DRV_APB2PERIPH_BASEADDR + 0x3C00)
+#define DRV_SYSCFG_BASEADDR					(DRV_APB2PERIPH_BASEADDR + 0x3800)
 #define DRV_EXTI_BASEADDR					(DRV_APB2PERIPH_BASEADDR + 0x3C00)
 
 
@@ -110,6 +137,36 @@ typedef struct
 }RCC_RegDef_t;
 
 
+/************************** EXTI register definition structure ***********************************************/
+typedef struct
+{
+	__vo uint32_t IMR;				//to be added												Address offset: 0x00
+	__vo uint32_t EMR;				//to be added												Address offset: 0x04
+	__vo uint32_t RTSR;				//to be added												Address offset: 0x08
+	__vo uint32_t FTSR;				//to be added 												Address offset: 0x0C
+	__vo uint32_t SWIER;			//to be added												Address offset: 0x10
+	__vo uint32_t PR;				//to be added												Address offset: 0x14
+
+}EXTI_RegDef_t;
+
+/************************** SYSCFG register definition structure ***********************************************/
+typedef struct
+{
+	__vo uint32_t MEMRMP;			//to be added												Address offset: 0x00
+	__vo uint32_t PMC;				//to be added												Address offset: 0x04
+	__vo uint32_t EXTICR[4];			//to be added											Address offset: 0x08 - 0x14
+	uint32_t RESERVED1[2];			//Reserved register											Address offset: 0x18 - 0x1C
+	__vo uint32_t CMPCR;			//to be added												Address offset: 0x20
+	uint32_t RESERVED2[2];			//Reserved register											Address offset: 0x24 - 0x28
+	__vo uint32_t CFGR;				//to be added												Address offset: 0x2C
+
+
+}SYSCFG_RegDef_t;
+
+
+
+
+
 //Peripheral definitions
 #define DRV_GPIOA						((GPIO_RegDef_t*) DRV_GPIOA_BASEADDR)
 #define DRV_GPIOB						((GPIO_RegDef_t*) DRV_GPIOB_BASEADDR)
@@ -119,7 +176,11 @@ typedef struct
 #define DRV_GPIOH						((GPIO_RegDef_t*) DRV_GPIOH_BASEADDR)
 
 //Defining the Reset and clock control
-#define DRV_RCC							((RCC_RegDef_t*) DRV_RCC_BASEADDR)
+#define DRV_RCC								((RCC_RegDef_t*) DRV_RCC_BASEADDR)
+
+#define DRV_EXTI							((EXTI_RegDef_t*) DRV_EXTI_BASEADDR)
+
+#define DRV_SYSCFG							((SYSCFG_RegDef_t*) DRV_SYSCFG_BASEADDR)
 
 /***************************** Defining peripheral clock enable macros *********************************/
 
@@ -143,12 +204,12 @@ typedef struct
 #define DRV_SPI4_PCLK_EN()		(DRV_RCC->APB2ENR |= (1 << 13));
 
 //Defining USART clock enable macros
-#define DRV_USART2_PCLK_EN()		(DRV_RCC->APB1ENR |= (1 << 17));
-#define DRV_USART1_PCLK_EN()		(DRV_RCC->APB2ENR |= (1 << 4));
-#define DRV_USART6_PCLK_EN()		(DRV_RCC->APB2ENR |= (1 << 5));
+#define DRV_USART2_PCLK_EN()	(DRV_RCC->APB1ENR |= (1 << 17));
+#define DRV_USART1_PCLK_EN()	(DRV_RCC->APB2ENR |= (1 << 4));
+#define DRV_USART6_PCLK_EN()	(DRV_RCC->APB2ENR |= (1 << 5));
 
 //Defining SYSCFG clock enable macros
-#define DRV_SYSCFG_PCLK_EN()		(DRV_RCC->APB2ENR |= (1 << 13));
+#define DRV_SYSCFG_PCLK_EN()	(DRV_RCC->APB2ENR |= (1 << 14));
 
 
 /***************************** Defining peripheral clock disable macros *********************************/
@@ -173,12 +234,12 @@ typedef struct
 #define DRV_SPI4_PCLK_DI()		(DRV_RCC->APB2ENR &= ~(1 << 13));
 
 //Defining USART clock enable macros
-#define DRV_USART2_PCLK_DI()		(DRV_RCC->APB1ENR &= ~(1 << 17));
-#define DRV_USART1_PCLK_DI()		(DRV_RCC->APB2ENR &= ~(1 << 4));
-#define DRV_USART6_PCLK_DI()		(DRV_RCC->APB2ENR &= ~(1 << 5));
+#define DRV_USART2_PCLK_DI()	(DRV_RCC->APB1ENR &= ~(1 << 17));
+#define DRV_USART1_PCLK_DI()	(DRV_RCC->APB2ENR &= ~(1 << 4));
+#define DRV_USART6_PCLK_DI()	(DRV_RCC->APB2ENR &= ~(1 << 5));
 
 //Defining SYSCFG clock disable macros
-#define DRV_SYSCFG_PCLK_DI()		(DRV_RCC->APB2ENR &= ~(1 << 13));
+#define DRV_SYSCFG_PCLK_DI()	(DRV_RCC->APB2ENR &= ~(1 << 14));
 
 
 //Macros to reset the GPIO peripherals
@@ -189,14 +250,58 @@ typedef struct
 #define DRV_GPIOE_REG_RST()		do{(DRV_RCC->AHB1RSTR |= (1 << 4)); (DRV_RCC->AHB1RSTR &= ~(1 << 4));}while(0)
 #define DRV_GPIOH_REG_RST()		do{(DRV_RCC->AHB1RSTR |= (1 << 7)); (DRV_RCC->AHB1RSTR &= ~(1 << 7));}while(0)
 
+
+#define GPIO_BASEADDR_TO_CODE(x)	   ((x == DRV_GPIOA)?0:\
+										(x == DRV_GPIOB)?1:\
+										(x == DRV_GPIOC)?2:\
+										(x == DRV_GPIOD)?3:\
+										(x == DRV_GPIOE)?4:\
+										(x == DRV_GPIOH)?7:0)
+
+
+//IRQ numbers
+#define IRQ_NO_EXTI0			6
+#define IRQ_NO_EXTI1			7
+#define IRQ_NO_EXTI2			8
+#define IRQ_NO_EXTI3			9
+#define IRQ_NO_EXTI4			10
+#define IRQ_NO_EXTI9_5			23
+#define IRQ_NO_EXTI15_10		40
+#define IRQ_NO_EXTI17			41
+#define IRQ_NO_EXTI18			42
+
+//IRQ priority def
+#define NVIC_IRQ_PRI0			0
+#define NVIC_IRQ_PRI1			1
+#define NVIC_IRQ_PRI2			2
+#define NVIC_IRQ_PRI3			3
+#define NVIC_IRQ_PRI4			4
+#define NVIC_IRQ_PRI5			5
+#define NVIC_IRQ_PRI6			6
+#define NVIC_IRQ_PRI7			7
+#define NVIC_IRQ_PRI8			8
+#define NVIC_IRQ_PRI9			9
+#define NVIC_IRQ_PRI10			10
+#define NVIC_IRQ_PRI11			11
+#define NVIC_IRQ_PRI12			12
+#define NVIC_IRQ_PRI13			13
+#define NVIC_IRQ_PRI14			14
+#define NVIC_IRQ_PRI15			15
+
 //Some generic macros
-#define ENABLE 				1
-#define DISABLE 			0
-#define SET 				ENABLE
-#define RESET 				DISABLE
+#define ENABLE 					1
+#define DISABLE 				0
+#define SET 					ENABLE
+#define RESET 					DISABLE
 #define GPIO_PIN_SET			SET
 #define GPIO_PIN_RESET			RESET
 
+
+
+
+
+
+#include "stm32f401xx_gpio_driver.h"
 
 
 #endif /* INC_STM32F401XX_H_ */
