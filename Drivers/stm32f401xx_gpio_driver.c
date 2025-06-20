@@ -103,6 +103,8 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 
 	uint32_t temp = 0;
 
+	// GPIO_PeriClockControl(pGPIOHandle->pGPIOx, ENABLE);
+
 	//configuring the mode of GPIO
 	if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode <= GPIO_MODE_ANALOG)
 	{
@@ -114,6 +116,40 @@ void GPIO_Init(GPIO_Handle_t *pGPIOHandle)
 	else
 	{
 		//interrupt mode
+		if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_FT)
+		{
+			//configure the falling edge interrupt/ FTSR
+			DRV_EXTI->FTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+
+			//clear corresponding RTSR bit
+			DRV_EXTI->RTSR &= ~(1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+		}
+		else if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_RT)
+		{
+			//configure the RTSR register
+			DRV_EXTI->RTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+
+			//clear corresponding FTSR bit
+			DRV_EXTI->FTSR &= ~(1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+		}
+		else if(pGPIOHandle->GPIO_PinConfig.GPIO_PinMode == GPIO_MODE_IT_RFT)
+		{
+			//configure both FTSR and RTSR registers
+
+			DRV_EXTI->FTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+			DRV_EXTI->RTSR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
+		}
+
+		//configure the port selection in SYSCFG_EXTICR
+		uint8_t temp1 = pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber / 4;
+		uint8_t temp2 = pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber % 4;
+		uint8_t portcode = GPIO_BASEADDR_TO_CODE(pGPIOHandle->pGPIOx);
+		DRV_SYSCFG_PCLK_EN();
+		DRV_SYSCFG->EXTICR[temp1] |= (portcode << (temp2 *4)); //temp2 * 4
+
+
+		//enable the exti interrupt delivery
+		DRV_EXTI->IMR |= (1 << pGPIOHandle->GPIO_PinConfig.GPIO_PinNumber);
 	}
 
 	//configuring the speed
@@ -190,12 +226,170 @@ void GPIO_DeInit(GPIO_RegDef_t *pGPIOx)
 }
 
 //Data read and write
-uint8_t GPIO_ReadFromInputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber);
-uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx);
-void GPIO_WriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber, uint8_t Value);
-void GPIO_WriteToOutputPort(GPIO_RegDef_t *pGPIOx, uint16_t Value);
-void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber);
+/*************************************************************
+ * @Function:			GPIO_ReadFromInputPin
+ *
+ * @Description:		This function reads from input pin
+ *
+ * @Parameter[in]		Address to the GPIO port
+ * @Parameter[in]		Pin number
+ * @Parameter[in]
+ *
+ * @Return:				Read value
+ *
+ * @Note:				None
+ *
+ */
+uint8_t GPIO_ReadFromInputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber)
+{
+	uint8_t value;
+	value = (uint8_t)((pGPIOx->IDR >> PinNumber) & 0x00000001);
+	return value;
+}
+
+/*************************************************************
+ * @Function:			GPIO_ReadFromInputPort
+ *
+ * @Description:		This function reads from input port
+ *
+ * @Parameter[in]		Address to the GPIO port
+ * @Parameter[in]
+ * @Parameter[in]
+ *
+ * @Return:				Read value
+ *
+ * @Note:				None
+ *
+ */
+uint16_t GPIO_ReadFromInputPort(GPIO_RegDef_t *pGPIOx)
+{
+	uint16_t value;
+	value = (uint16_t)(pGPIOx->IDR);
+	return value;
+}
+
+/*************************************************************
+ * @Function:			GPIO_WriteToOutputPin
+ *
+ * @Description:		This function writes to the output pin
+ *
+ * @Parameter[in]		Address to the GPIO port
+ * @Parameter[in]		Number of the used pin
+ * @Parameter[in]		Value that should be written
+ *
+ * @Return:				None
+ *
+ * @Note:				None
+ *
+ */
+void GPIO_WriteToOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber, uint8_t Value)
+{
+	if(Value == GPIO_PIN_SET)
+	{
+		//we write 1 to the output data register corresponding to the PinNumber
+		pGPIOx->ODR |= (1 << PinNumber);
+	}
+	else
+	{
+		//write 0
+		pGPIOx->ODR &= ~(1 << PinNumber);
+	}
+}
+
+/*************************************************************
+ * @Function:			GPIO_WriteToOutputPort
+ *
+ * @Description:		This function writes to the output port
+ *
+ * @Parameter[in]		Address to the GPIO port
+ * @Parameter[in]		Value that should be written
+ * @Parameter[in]
+ *
+ * @Return:				None
+ *
+ * @Note:				None
+ *
+ */
+void GPIO_WriteToOutputPort(GPIO_RegDef_t *pGPIOx, uint16_t Value)
+{
+	pGPIOx->ODR = Value;
+}
+
+/*************************************************************
+ * @Function:			GPIO_ToggleOutputPin
+ *
+ * @Description:		This function toggles the output port
+ *
+ * @Parameter[in]		Address to the GPIO port
+ * @Parameter[in]		Pin number
+ * @Parameter[in]
+ *
+ * @Return:				None
+ *
+ * @Note:				None
+ *
+ */
+void GPIO_ToggleOutputPin(GPIO_RegDef_t *pGPIOx, uint8_t PinNumber)
+{
+	pGPIOx->ODR ^= (1 << PinNumber);
+}
+
 
 //IRQ configuration and ISR handling
-void GPIO_IRQConfig(uint8_t IRQNumber, uint8_t IRQPriority, uint8_t EnorDi);
-void GPIO_IRQHandling(uint8_t PinNumber);
+void GPIO_IRQITConfig(uint8_t IRQNumber, uint8_t EnorDi)
+{
+	if (EnorDi == ENABLE)
+	{
+		if(IRQNumber <= 31)
+		{
+			//programm the ISER0 reg
+			*DRV_NVIC_ISER0 |= ( 1 << IRQNumber);
+		}
+		else if (IRQNumber > 31 && IRQNumber < 64)
+		{
+			//programm the ISER1 reg
+			*DRV_NVIC_ISER1 |= ( 1 << (IRQNumber % 32));
+		}
+		else if (IRQNumber > 64 && IRQNumber < 96)
+		{
+			//programm the ISER2  reg
+			*DRV_NVIC_ISER2 |= ( 1 << (IRQNumber % 64));
+		}
+
+	}
+	else
+	{
+		if(IRQNumber <= 31)
+				{
+					//programm the ICER0 reg
+					*DRV_NVIC_ICER0 |= ( 1 << IRQNumber);
+				}
+				else if (IRQNumber > 31 && IRQNumber < 64)
+				{
+					//programm the ICER1 reg
+					*DRV_NVIC_ICER1 |= ( 1 << (IRQNumber % 32));
+				}
+				else if (IRQNumber > 64 && IRQNumber < 96)
+				{
+					//programm the ICER2  reg
+					*DRV_NVIC_ICER2 |= ( 1 << (IRQNumber % 64));
+				}
+	}
+}
+
+void GPIO_IRQPriority_Config(uint8_t IRQNumber, uint32_t IRQPriority)
+{
+	uint8_t iprx = IRQNumber / 4;
+	uint8_t iprx_section = IRQNumber % 4;
+
+	uint32_t	shift_amount = (8 * iprx_section) + (8 - NO_PR_BITS_IMPLEMENTED);
+	*(DRV_NVIC_IPR_BASE_ADDR + iprx) |= (IRQPriority << shift_amount);
+}
+
+void GPIO_IRQHandling(uint8_t PinNumber)
+{
+	if(DRV_EXTI->PR & (1 << PinNumber)){
+		//clear
+		DRV_EXTI->PR |= (1 << PinNumber);
+	}
+}
